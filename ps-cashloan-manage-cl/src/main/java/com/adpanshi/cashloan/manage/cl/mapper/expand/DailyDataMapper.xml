@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 风控数据-平台数据日报 -->
+<mapper namespace="com.adpanshi.cashloan.manage.cl.mapper.expand.DailyDataMapper">
+
+	<resultMap id="BaseResultMap" type="com.adpanshi.cashloan.manage.cl.pojo.DailyData">
+		<id column="id" property="id" jdbcType="INTEGER" />
+		<result column="user_count" property="userCount" jdbcType="BIGINT" />
+		<result column="borrow_count" property="borrowCount" jdbcType="BIGINT" />
+		<result column="loan_count" property="loanCount" jdbcType="BIGINT" />
+		<result column="overdue_count" property="overdueCount" jdbcType="BIGINT" />
+		<result column="urge_repay_count" property="urgeRepayCount" jdbcType="BIGINT" />
+		<result column="bad_amt_count" property="badAmtCount" jdbcType="BIGINT" />
+		<result column="bad_amt" property="badAmt" jdbcType="DECIMAL" />
+		<result column="loan_amt" property="loanAmt" jdbcType="DECIMAL" />
+		<result column="repay_amt" property="repayAmt" jdbcType="DECIMAL" />
+		<result column="serve_fee_amt" property="serveFeeAmt" jdbcType="DECIMAL" />
+		<result column="overdue_amt" property="overdueAmt" jdbcType="DECIMAL" />
+		<result column="overdue_interest" property="overdueInterest" jdbcType="DECIMAL" />
+		<result column="old_user_loan_count" property="oldUserLoanCount" jdbcType="BIGINT" />
+		<result column="old_user_auto_loan_count" property="oldUserAutoLoanCount" jdbcType="BIGINT" />
+		<result column="repay_amt_count" property="repayAmtCount" jdbcType="BIGINT" />
+		<result column="old_user_overdue_count" property="oldUserOverdueCount" jdbcType="BIGINT" />
+		<result column="new_user_loan_count" property="newUserLoanCount" jdbcType="BIGINT" />
+		<result column="overdue_rate" property="overdueRate" jdbcType="DECIMAL" />
+		<result column="old_overdue_rate" property="oldOverdueRate" jdbcType="DECIMAL" />
+		<result column="date" property="date" jdbcType="TIMESTAMP" />
+	</resultMap>
+
+	<sql id="Base_Column_List">
+		user_count,borrow_count,loan_count,overdue_count,urge_repay_count,bad_amt_count,bad_amt,loan_amt,repay_amt,serve_fee_amt,overdue_amt,
+		old_user_loan_count,old_user_auto_loan_count,repay_amt_count,old_user_overdue_count,new_user_loan_count,overdue_rate,old_overdue_rate,IFNULL(b.overdueInterest,0) overdueInterest,date
+	</sql>
+
+
+	<!--列表查询-->
+	<select id="dayData" resultMap="BaseResultMap" parameterType="java.util.Map">
+		SELECT
+		<include refid="Base_Column_List"></include>
+		FROM statistic_daily a
+		LEFT JOIN (<include refid="overdueInterest"></include>) b ON a.date = b.time
+		<where>
+			<if test="startDate!=null and startDate!=''">
+				date <![CDATA[ >= ]]> #{startDate,jdbcType=VARCHAR}
+			</if>
+			<if test="endDate!=null and endDate!=''">
+				and date <![CDATA[ <= ]]> #{endDate,jdbcType=VARCHAR}
+			</if>
+		</where>
+		ORDER BY date DESC
+		<if test="totalCount !='' and totalCount !=null">
+			limit #{totalCount,jdbcType = BIGINT}
+		</if>
+	</select>
+
+
+
+	<!--保存前一天统计结果-->
+	<insert id="saveDayData">
+		INSERT INTO statistic_daily
+		(user_count,borrow_count,loan_count,overdue_count,urge_repay_count,bad_amt_count,bad_amt,loan_amt,repay_amt,serve_fee_amt,overdue_amt,
+		old_user_loan_count,old_user_auto_loan_count,repay_amt_count,old_user_overdue_count,new_user_loan_count,overdue_rate,old_overdue_rate,date)
+		SELECT
+		IFNULL(p1.userCount,0) userCount,
+		IFNULL(p2.borrowCount,0) borrowCount,
+		IFNULL(p2.loanCount,0) loanCount,
+		IFNULL(p2.overdueCount,0) overdueCount,
+		IFNULL(p5.urgeRepayCount,0) urgeRepayCount,
+		IFNULL(p2.badAmtCount,0) badAmtCount,
+		IFNULL(p7.badAmt,0) badAmt,
+		IFNULL(p8.loanAmt,0) loanAmt,
+		IFNULL(p9.repayAmt,0) repayAmt,
+		IFNULL(p9.serveFeeAmt,0) serveFeeAmt,
+		IFNULL(p11.overdueAmt,0) overdueAmt,
+		IFNULL(p13.oldUserLoanCount,0) oldUserLoanCount,
+		IFNULL(p13.oldUserAutoLoanCount,0) oldUserAutoLoanCount,
+		IFNULL(p15.repayAmtCount,0) repayAmtCount,
+		IFNULL(p14.oldUserOverdueCount,0) oldUserOverdueCount,
+		(IFNULL(p2.loanCount,0)-IFNULL(p13.oldUserLoanCount,0)-IFNULL(p13.oldUserAutoLoanCount,0)) as newUserLoanCount,
+		IFNULL(round(p2.overdueCount/p3.yesterdayRepayAmtCount*100,2),0) as overdueRate,
+		IFNULL(round(p14.oldUserOverdueCount/p3.yesterdayRepayAmtCount*100,2),0)as oldOverdueRate,
+		<include refid="yesterday"></include>
+		FROM (<include refid="userCount"></include>) p1
+		JOIN (<include refid="borrowCount_loanCount_overdueCount_badAmtCount"></include>) p2
+		JOIN (<include refid="yesterdayRepayAmtCount"></include>) p3
+		JOIN (<include refid="urgeRepayCount"></include>) p5
+		JOIN (<include refid="badAmt"></include>) p7
+		JOIN (<include refid="loanAmt"></include>) p8
+		JOIN (<include refid="repayAmt_serveFeeAmt"></include>) p9
+		JOIN (<include refid="overdueAmt"></include>) p11
+		JOIN (<include refid="oldUserAutoLoanCount_oldUserLoanCount"></include>) p13
+		JOIN (<include refid="oldUserOverdueCount"></include>) p14
+		JOIN (<include refid="repayAmtCount"></include>) p15
+	</insert>
+
+	<!-- 用户数 -->
+	<sql id="userCount">
+		select count(id) userCount FROM cl_user WHERE DATE_FORMAT(regist_time,'%Y-%m-%d')=<include refid="yesterday"></include>
+	</sql>
+   	<!-- 借款笔数,逾期笔数,坏账笔数,放款笔数 -->
+	<sql id="borrowCount_loanCount_overdueCount_badAmtCount">
+		SELECT
+		sum(if(state=10,1,0)) borrowCount,
+		sum(if(state=50,1,0)) overdueCount,
+		sum(if(state=90,1,0)) badAmtCount,
+		sum(if(state=20 OR state=26,1,0)) loanCount
+		FROM cl_borrow_progress WHERE DATE_FORMAT(create_time,'%Y-%m-%d')=<include refid="yesterday"></include>
+	</sql>
+   	<!-- 坏账金额 -->
+   	<sql id="badAmt">
+		SELECT sum(b.amount + b.interest) badAmt FROM cl_borrow_progress bp LEFT JOIN cl_borrow b ON bp.borrow_id = b.id WHERE bp.state = '90' AND DATE_FORMAT(bp.create_time,'%Y-%m-%d')=<include refid="yesterday"></include>
+   	</sql>
+   	<!-- 放款金额 -->
+   	<sql id="loanAmt">
+		SELECT sum(b.real_amount) loanAmt FROM cl_borrow_progress bp LEFT JOIN cl_borrow b ON bp.borrow_id = b.id WHERE bp.state = '30' AND DATE_FORMAT(bp.create_time,'%Y-%m-%d')=<include refid="yesterday"></include>
+   	</sql>
+   	<!-- 还款金额,服务费金额 -->
+   	<sql id="repayAmt_serveFeeAmt">
+		SELECT sum(b.amount + b.interest) repayAmt,sum(b.service_fee) serveFeeAmt FROM cl_borrow_progress bp LEFT JOIN cl_borrow b ON bp.borrow_id = b.id WHERE bp.state IN (40,41) AND DATE_FORMAT(bp.create_time,'%Y-%m-%d')=<include refid="yesterday"></include>
+   	</sql>
+   	<!-- 逾期金额 -->
+   	<sql id="overdueAmt">
+		SELECT sum(b.amount + b.interest) overdueAmt FROM cl_borrow_progress bp LEFT JOIN cl_borrow b ON bp.borrow_id = b.id WHERE bp.state = '50' AND DATE_FORMAT(bp.create_time,'%Y-%m-%d')=<include refid="yesterday"></include>
+   	</sql>
+   	<!-- 催收次数 -->
+   	<sql id="urgeRepayCount">
+
+   		select count(id) urgeRepayCount from cl_urge_repay_log WHERE  DATE_FORMAT(create_time,'%Y-%m-%d')=<include refid="yesterday"></include>
+   	</sql>
+   	<!-- 逾期罚息—变化 -->
+   	<sql id="overdueInterest">
+		select sum(penalty_amout) overdueInterest,repay_time time from ( select  penalty_amout,DATE_FORMAT(repay_time,'%Y-%m-%d') repay_time from cl_borrow_repay where state = '20' and penalty_day > 0 ) t GROUP BY repay_time
+   	</sql>
+
+	<!--新增数据统计-->
+	<!-- 当日应还款笔数 -->
+	<sql id="repayAmtCount">
+		select count(id) repayAmtCount from cl_borrow_repay where DATE_FORMAT(repay_time,'%Y-%m-%d')=<include refid="yesterday"></include>
+	</sql>
+
+	<!-- 昨日应还款笔数 -->
+	<sql id="yesterdayRepayAmtCount">
+		select count(id) yesterdayRepayAmtCount from cl_borrow_repay where DATE_FORMAT(repay_time,'%Y-%m-%d')=<include refid="beforeYesterday"></include>
+	</sql>
+
+	<!--老用户人审放款笔数,老用户机审放款笔数-->
+	<sql id="oldUserAutoLoanCount_oldUserLoanCount">
+		SELECT SUM(IF(state = 20, 1, 0)) oldUserAutoLoanCount, SUM(IF(state = 26, 1, 0)) oldUserLoanCount FROM ( SELECT user_id, state FROM cl_borrow_progress WHERE state IN (20, 26) AND DATE_FORMAT(create_time, '%Y-%m-%d') = <include refid="yesterday"></include>) a INNER JOIN ( SELECT DISTINCT user_id FROM cl_borrow_progress WHERE state IN (40,41) ) b ON a.user_id = b.user_id
+	</sql>
+
+	<!--老用户逾期笔数-->
+	<sql id="oldUserOverdueCount">
+		SELECT COUNT(a.user_id) oldUserOverdueCount FROM ( SELECT user_id, state FROM cl_borrow_progress WHERE state = 50 AND DATE_FORMAT(create_time, '%Y-%m-%d') = <include refid="yesterday"></include> ) a INNER JOIN ( SELECT DISTINCT user_id FROM cl_borrow_progress WHERE state IN (40, 41)  <![CDATA[ AND DATE_FORMAT(create_time, '%Y-%m-%d') < ]]> <include refid="yesterday"></include> ) b ON a.user_id = b.user_id
+	</sql>
+
+
+	<!--昨天日期格式化yyyy-dd-mm-->
+	<sql id="yesterday">date_sub(curdate(),interval 1 day)</sql>
+
+	<!--前天日期格式化yyyy-dd-mm-->
+	<sql id="beforeYesterday">date_sub(curdate(),interval 2 day)</sql>
+
+	<!--通过率用sql-->
+	<!--每日借款人数和借款笔数,老用户借款笔数-->
+	<sql id="rate_borrowUserCount_borrowCount_oldBorrowCount">
+		SELECT count(DISTINCT(b1.user_id)) borrowUserCount, count(b1.borrow_id) brrowCount, b1.create_time time, sum( IF ( b1.create_time > b2.minTime, 1, 0 )) oldBorrowCount FROM ( SELECT user_id, borrow_id, DATE_FORMAT(create_time, '%Y-%m-%d') create_time FROM cl_borrow_progress WHERE state = '10' ) b1 LEFT JOIN ( SELECT user_id, min(create_time) minTime FROM cl_borrow_progress WHERE state IN (40, 41) GROUP BY user_id ) b2 ON b1.user_id = b2.user_id GROUP BY b1.create_time
+	</sql>
+
+	<!--每日借款老用户人数-->
+	<sql id="oldUserBorrowCount">
+		SELECT count(DISTINCT(c1.user_id)) oldUserBorrowCount, c1.time time FROM ( SELECT b1.user_id, b1.borrow_id, b1.date time, IF (b1.create_time > minTime, 1, 0) oldState FROM ( SELECT a1.user_id, a1.borrow_id, a1.date, a1.create_time FROM ( SELECT user_id, borrow_id, DATE_FORMAT(create_time, '%Y-%m-%d') date, create_time FROM cl_borrow_progress WHERE state = 10 ) a1 JOIN ( SELECT borrow_id FROM cl_borrow_progress WHERE state = 30 ) a2 ON a1.borrow_id = a2.borrow_id ) b1 LEFT JOIN ( SELECT user_id, min(create_time) minTime FROM cl_borrow_progress WHERE state IN (40,41) GROUP BY user_id ) b2 ON b1.user_id = b2.user_id ) c1 WHERE c1.oldState = 1 GROUP BY c1.time
+	</sql>
+
+	<!--每日累计放款人数和放款笔数,老用户笔数-->
+	<sql id="rate_loanUserCount_loanCount_oldLoanCount">
+		SELECT count(DISTINCT(b1.user_id)) loanUserCount, count(b1.borrow_id) loanCount, b1.date time, sum( IF (b1.create_time > minTime, 1, 0)) oldLoanCount FROM ( SELECT a1.user_id, a1.borrow_id, a1.date, a1.create_time FROM ( SELECT user_id, borrow_id, DATE_FORMAT(create_time, '%Y-%m-%d') date, create_time FROM cl_borrow_progress WHERE state = 10 ) a1 JOIN ( SELECT borrow_id FROM cl_borrow_progress WHERE state = 30 ) a2 ON a1.borrow_id = a2.borrow_id ) b1 LEFT JOIN ( SELECT user_id, min(create_time) minTime FROM cl_borrow_progress WHERE state IN (40,41) GROUP BY user_id ) b2 ON b1.user_id = b2.user_id GROUP BY date
+	</sql>
+
+	<!--每日累计放款老用户人数-->
+	<sql id="oldLoanUserCount">
+		SELECT count(DISTINCT(c1.user_id)) oldLoanUserCount, c1.time time FROM ( SELECT b1.user_id, b1.borrow_id, b1.date time, IF (b1.create_time > minTime, 1, 0) oldState FROM ( SELECT a1.user_id, a1.borrow_id, a1.date, a1.create_time FROM ( SELECT user_id, borrow_id, DATE_FORMAT(create_time, '%Y-%m-%d') date, create_time FROM cl_borrow_progress WHERE state = 10 ) a1 JOIN ( SELECT borrow_id FROM cl_borrow_progress WHERE state = 30 ) a2 ON a1.borrow_id = a2.borrow_id ) b1 LEFT JOIN ( SELECT user_id, min(create_time) minTime FROM cl_borrow_progress WHERE state IN (40,41) GROUP BY user_id ) b2 ON b1.user_id = b2.user_id ) c1 WHERE c1.oldState = 1 GROUP BY c1.time
+	</sql>
+
+	<!-- 每日通过率 -->
+	<select id="dayApr" resultType="com.adpanshi.cashloan.manage.cl.pojo.DayPassApr"  parameterType="java.util.Map">
+		SELECT
+		p1.time date,
+		IFNULL(p1.borrowUserCount,0) borrowUserCount,
+		IFNULL(p2.loanUserCount,0) loanUserCount,
+		(IFNULL(p2.loanUserCount,0)-IFNULL(p3.oldLoanUserCount,0)) newLoanUserCount,
+		round((IFNULL(p2.loanUserCount,0)-IFNULL(p3.oldLoanUserCount,0))/(IFNULL(p1.borrowUserCount,0)-IFNULL(p4.oldUserBorrowCount,0))*100,2) newBorrowPassApr,
+		round(IFNULL(p2.loanUserCount,0)/IFNULL(p1.borrowUserCount,0)*100,2) borrowPassApr,
+		IFNULL(p1.brrowCount,0) brrowCount,
+		IFNULL(p2.loanCount,0) loanCount,
+		(IFNULL(p2.loanCount,0)-IFNULL(p2.oldLoanCount,0)) newLoanCount,
+		round((IFNULL(p2.loanCount,0)-IFNULL(p2.oldLoanCount,0))/(IFNULL(p1.brrowCount,0)-IFNULL(p1.oldBorrowCount,0))*100,2) newBorrowApr,
+		round(IFNULL(p2.loanCount,0)/IFNULL(p1.brrowCount,0)*100,2) borrowApr
+		FROM
+		(<include refid="rate_borrowUserCount_borrowCount_oldBorrowCount"></include>) p1
+		LEFT JOIN (<include refid="rate_loanUserCount_loanCount_oldLoanCount"></include>) p2 ON p1.time = p2.time
+		LEFT JOIN (<include refid="oldLoanUserCount"></include>) p3 ON p1.time = p3.time
+		LEFT JOIN (<include refid="oldUserBorrowCount"></include>) p4 ON p1.time = p4.time
+		<where>
+			<if test="startDate!=null and startDate!=''">
+				and p1.time >= #{startDate,jdbcType=VARCHAR}
+			</if>
+			<if test="endDate!=null and endDate!=''">
+				<![CDATA[ and p1.time <= #{endDate,jdbcType=VARCHAR} ]]>
+			</if>
+		</where>
+		ORDER BY p1.time DESC
+	</select>
+
+
+
+
+
+
+
+
+
+</mapper>

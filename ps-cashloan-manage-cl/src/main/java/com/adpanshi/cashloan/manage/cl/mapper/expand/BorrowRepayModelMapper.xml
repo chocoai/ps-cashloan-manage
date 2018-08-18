@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- cl_borrow_repay表:还款计划模块 -->
+<mapper namespace="com.adpanshi.cashloan.manage.cl.mapper.expand.BorrowRepayModelMapper">
+
+    <resultMap id="BaseResultMap" type="com.adpanshi.cashloan.manage.cl.model.BorrowMain">
+        <id column="id" property="id" jdbcType="BIGINT" />
+        <result column="user_id" property="userId" jdbcType="BIGINT" />
+        <result column="order_no" property="orderNo" jdbcType="VARCHAR" />
+        <result column="amount" property="amount" jdbcType="DECIMAL" />
+        <result column="real_amount" property="realAmount" jdbcType="DECIMAL" />
+        <result column="fee" property="fee" jdbcType="DECIMAL" />
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
+        <result column="time_limit" property="timeLimit" jdbcType="VARCHAR" />
+        <result column="state" property="state" jdbcType="VARCHAR" />
+        <result column="card_id" property="cardId" jdbcType="BIGINT" />
+        <result column="client" property="client" jdbcType="VARCHAR" />
+        <result column="address" property="address" jdbcType="VARCHAR" />
+        <result column="coordinate" property="coordinate" jdbcType="VARCHAR" />
+        <result column="remark" property="remark" jdbcType="VARCHAR" />
+        <result column="ip" property="ip" jdbcType="VARCHAR" />
+        <result column="audit_name" property="auditName" jdbcType="VARCHAR" />
+        <result column="audit_time" property="auditTime" jdbcType="TIMESTAMP" />
+        <result column="template_info" property="templateInfo" jdbcType="VARCHAR" />
+    </resultMap>
+
+    <resultMap id="RepayModelMap" type="com.adpanshi.cashloan.manage.cl.pojo.BorrowAndRepayModel">
+        <result column="borrow_id" property="borrowId" jdbcType="BIGINT" />
+        <result column="user_id" property="userId" jdbcType="BIGINT" />
+        <result column="amount" property="amount" jdbcType="DECIMAL" />
+        <result column="real_amount" property="realAmount" jdbcType="DECIMAL" />
+        <result column="borrow_state" property="borrowState" jdbcType="VARCHAR" />
+        <result column="repay_id" property="repayId" jdbcType="BIGINT" />
+        <result column="repay_amount" property="repayAmount" jdbcType="DECIMAL" />
+        <result column="repay_time" property="repayTime" jdbcType="TIMESTAMP" />
+        <result column="repay_state" property="repayState" jdbcType="VARCHAR" />
+        <result column="penalty_amout" property="penaltyAmout" jdbcType="DECIMAL" />
+        <result column="penalty_day" property="penaltyDay" jdbcType="VARCHAR" />
+        <association property="borrowMain" column="main_id"
+                     select="com.adpanshi.cashloan.manage.cl.mapper.BorrowMainMapper.selectByPrimaryKey"/>
+    </resultMap>
+
+
+    <select id="findExpireToRepay" resultMap="RepayModelMap" parameterType="java.util.Map">
+        SELECT borrow.borrow_main_id AS main_id, borrow.amount AS amount, borrow.real_amount AS
+        real_amount,borrow.state AS borrow_state,borrow.user_id AS user_id,
+        repay.borrow_id, repay.repay_id, repay.repay_amount, repay.repay_time, repay.repay_state,
+        repay.penalty_amout, repay.penalty_day FROM
+            (SELECT id AS repay_id,amount AS repay_amount,state AS repay_state,
+            penalty_amout, penalty_day, repay_time, borrow_id FROM cl_borrow_repay
+            <trim prefix="where" prefixOverrides="and|or">
+                <if test="state !='' and state !=null">
+                    state  = #{state,jdbcType=VARCHAR}
+                </if>
+                <if test=" beforeRepayTime !=null">
+                    AND repay_time  &gt;= #{beforeRepayTime,jdbcType=TIMESTAMP}
+                </if>
+                <if test=" afterRepayTime !=null">
+                    AND repay_time  &lt;= #{afterRepayTime,jdbcType=TIMESTAMP}
+                </if>
+            </trim>
+            ) AS repay
+        LEFT JOIN cl_borrow borrow ON borrow.id = repay.borrow_id
+
+    </select>
+
+
+
+
+
+</mapper>

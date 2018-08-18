@@ -1,0 +1,24 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- 适合集群、可以连接主从rebdis服务 -->
+	<bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
+		<property name="maxTotal" 		value="${redis.maxtotal}"/>
+		<property name="maxIdle" 	    value="${redis.pool.maxIdle}"/>
+		<property name="maxWaitMillis"  value="${redis.maxwaitmillis}"/>
+		<property name="testOnBorrow"   value="${redis.pool.testOnBorrow}"/>
+		<property name="testOnReturn"   value="${redis.testonreturn}"/>
+	</bean>
+
+	<bean id="jedisPool" class="redis.clients.jedis.JedisPool">
+		<constructor-arg name="poolConfig" ref="jedisPoolConfig" />
+		<constructor-arg name="host" value="${redis.ip}" />
+		<constructor-arg name="port" value="${redis.port}" />
+		<constructor-arg name="password" value="${redis.password}"/>
+		<constructor-arg name="database" value="${redis.database}" />
+		<constructor-arg name="timeout" value="${redis.maxwaitmillis}" />
+	</bean>
+
+</beans>

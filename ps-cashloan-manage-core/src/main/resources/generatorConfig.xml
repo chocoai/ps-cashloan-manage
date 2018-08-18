@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE generatorConfiguration PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN" "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd" >
+<generatorConfiguration>
+	<classPathEntry location="D:/maven/repository/mysql/mysql-connector-java/5.1.32/mysql-connector-java-5.1.32.jar" />
+	<context id="adpanshi" targetRuntime="MyBatis3">
+		<property name="javaFileEncoding" value="UTF-8"/>
+		<property name="mergeable" value="true" />
+		<property name="beginningDelimiter" value="`"/>
+		<property name="endingDelimiter" value="`"/>
+		<plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin" />
+		<plugin type="org.mybatis.generator.plugins.CaseInsensitiveLikePlugin"></plugin>
+		<plugin type="org.mybatis.generator.plugins.SerializablePlugin"></plugin>
+		<commentGenerator>
+			<property name="suppressDate" value="true" />
+		</commentGenerator>
+		<jdbcConnection driverClass="com.mysql.jdbc.Driver" connectionURL="jdbc:mysql://192.168.20.116:3306/indialoan_online?useUnicode=true&amp;characterEncoding=UTF-8" userId="root"
+			password="root" />
+		<javaTypeResolver>
+           <property name="forceBigDecimals" value="false"/>  
+        </javaTypeResolver>
+		<javaModelGenerator targetPackage="com.adpanshi.cashloan.manage.arc.model" targetProject="src/main/java">
+			<property name="enableSubPackages" value="true" />
+			<property name="trimStrings" value="true" />
+		</javaModelGenerator>
+		<sqlMapGenerator targetPackage="com.adpanshi.cashloan.manage.arc.mapper" targetProject="src/main/java">
+			<property name="enableSubPackages" value="true" />
+		</sqlMapGenerator>
+		<javaClientGenerator targetPackage="com.adpanshi.cashloan.manage.arc.mapper" targetProject="src/main/java" type="XMLMAPPER">
+			<property name="enableSubPackages" value="true" />
+		</javaClientGenerator>
+
+		<table tableName="arc_credit_log" domainObjectName="CreditLog" delimitIdentifiers="true">
+			<property name="useActualColumnNames" value="false"/>
+			<generatedKey column="FId" sqlStatement="SELECT @@IDENTITY" identity="true" />
+			<columnRenamingRule searchString="^F" replaceString=""/>
+			<columnOverride property="id" column="FId" javaType="java.lang.Long" jdbcType="INTEGER" />
+		</table>
+	</context>
+</generatorConfiguration>

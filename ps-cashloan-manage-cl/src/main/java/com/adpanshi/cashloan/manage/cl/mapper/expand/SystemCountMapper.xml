@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 首页数据统计 -->
+<mapper namespace="com.adpanshi.cashloan.manage.cl.mapper.expand.SystemCountMapper">
+    <resultMap id="mapResult" type="HashMap">  
+        <result property="key" column="ks" />  
+        <result property="value" column="vs" />  
+    </resultMap>  
+    
+    <!-- 统计当日注册用户数量 -->
+    <select id="countRegister" resultType="java.lang.Integer">
+    	select count(id) from cl_user 
+    	where DATE_FORMAT(regist_time,'%Y-%m-%d') = DATE_FORMAT(SYSDATE(),'%Y-%m-%d')
+    </select>
+    <!-- 统计当日登陆用户数量 -->
+    <select id="countLogin" resultType="java.lang.Integer">
+    	select count(id) from cl_user 
+    	where DATE_FORMAT(login_time,'%Y-%m-%d') = DATE_FORMAT(SYSDATE(),'%Y-%m-%d')
+    </select>
+    <!-- 统计当日借款申请的数量 -->
+    <select id="countBorrow" resultType="java.lang.Double">
+    	select count(id) from cl_borrow_main
+    	where DATE_FORMAT(create_time,'%Y-%m-%d') = DATE_FORMAT(SYSDATE(),'%Y-%m-%d')
+    </select>
+    <!-- 统计当日借款申请通过的数量 -->
+    <select id="countBorrowPass" resultType="java.lang.Double">
+    	select count(id) from cl_borrow_main_progress
+    	where DATE_FORMAT(create_time,'%Y-%m-%d') = DATE_FORMAT(SYSDATE(),'%Y-%m-%d') 
+    		and state in ('20','26') 
+    </select>
+    <!-- 统计当日借款申请放款数量 -->
+    <select id="countBorrowLoan" resultType="java.lang.Integer">
+    	select count(id) from cl_borrow_main_progress
+    	where DATE_FORMAT(create_time,'%Y-%m-%d') = DATE_FORMAT(SYSDATE(),'%Y-%m-%d') 
+    	and state = '30'
+    </select>
+    <!-- 统计当日还款量 -->
+    <select id="countBorrowRepay" resultType="java.lang.Integer">
+    	select count(id) from cl_borrow_repay_log
+    	where DATE_FORMAT(repay_time,'%Y-%m-%d') = DATE_FORMAT(SYSDATE(),'%Y-%m-%d') 
+    </select>
+    <!-- 统计历史放款总量 -->
+    <select id="countBorrowMainLoanHistory" resultType="java.lang.Integer">
+    	select count(id) from cl_borrow_main_progress where state = '30'
+    	<![CDATA[ AND DATE_FORMAT(create_time,'%Y-%m-%d') <= date_sub(curdate(),interval 1 day) ]]>
+	</select>
+	<!-- 统计历史还款总量 -->
+	<select id="countBorrowMainRepayHistory" resultType="java.lang.Integer">
+		select count(id) from cl_borrow_main_progress where state = '40'
+		<![CDATA[ AND DATE_FORMAT(create_time,'%Y-%m-%d') <= date_sub(curdate(),interval 1 day) ]]>
+	</select>
+	<!-- 统计历史回款率 -->
+	<select id="MainRepaymentRate" resultType="java.lang.Double">
+		SELECT sum(CASE WHEN state = 40 THEN 1 ELSE 0 END) /sum(CASE WHEN state = 30 THEN 1 ELSE 0 END)
+		from cl_borrow_main_progress
+		where
+		<![CDATA[ DATE_FORMAT(create_time,'%Y-%m-%d') <= date_sub(curdate(),interval 1 day) ]]>
+	</select>
+	<!-- 统计分期放款总量 -->
+	<select id="countBorrowLoanHistory" resultType="java.lang.Integer">
+		select count(id) from cl_borrow_repay
+		WHERE <![CDATA[ DATE_FORMAT(repay_time,'%Y-%m-%d') <= date_sub(curdate(),interval 1 day) ]]>
+	</select>
+    <!-- 统计分期还款总量 -->
+    <select id="countBorrowRepayHistory" resultType="java.lang.Integer">
+    	select count(id) from cl_borrow_repay where state = '10'
+        <![CDATA[ AND DATE_FORMAT(repay_time,'%Y-%m-%d') <= date_sub(curdate(),interval 1 day) ]]>
+    </select>
+	<!-- 统计分期回款率 -->
+	<select id="RepaymentRate" resultType="java.lang.Double">
+		SELECT sum(CASE WHEN state = 10 THEN 1 ELSE 0 END) /count(*)
+		from cl_borrow_repay
+		where
+		<![CDATA[ DATE_FORMAT(repay_time,'%Y-%m-%d') <= date_sub(curdate(),interval 1 day) ]]>
+	</select>
+    <!-- 待还款总额 -->
+    <select id="sumBorrowNeedRepay" resultType="java.lang.Double">
+    	select sum(amount+penalty_amout) from cl_borrow_repay where state = '20'
+    </select>
+    <!-- 逾期未还款总额 -->
+    <select id="sumBorrowOverdueRepay" resultType="java.lang.Double">
+    	select sum(amount) from cl_borrow_repay where state = '20' and penalty_amout>0
+    </select>
+    <!-- 逾期未还款罚金总额 -->
+    <select id="sumBorrowOverdueFineRepay" resultType="java.lang.Double">
+    	select sum(penalty_amout) from cl_borrow_repay where state = '20' and penalty_amout>0
+    </select>
+    <!-- 当月融资金额(按地区分组) -->
+    <select id="sumMonthBorrowAmtByProvince" resultType="map">
+    	select address 'key',sum(amount) 'value' from 
+    		( select amount,(case when LOCATE('省', address) >0 then left (address, LOCATE('省', address)-1) when trim(address) in ('北京','上海') then trim(address) end ) address 
+    			from cl_borrow_main
+    			where  DATE_FORMAT(create_time,'%Y-%m-%d') >= CONCAT(DATE_FORMAT(SYSDATE(),'%Y-%m'),'-01') 
+    			<![CDATA[ and DATE_FORMAT(create_time,'%Y-%m-%d') <= DATE_FORMAT(SYSDATE(),'%Y-%m-%d') ]]>	
+    		) t 
+    	GROUP BY address
+    </select>
+    <!-- 当月借款次数(按地区分组) -->
+    <select id="countMonthBorrowByProvince" resultType="map">
+    	select address 'key',count(id) 'value' from 
+    		(select id,(case when LOCATE('省', address) >0 then left (address, LOCATE('省', address)-1) when trim(address) in ('北京','上海') then trim(address) end ) address 
+    			from cl_borrow_main
+    			where  DATE_FORMAT(create_time,'%Y-%m-%d') >= CONCAT(DATE_FORMAT(SYSDATE(),'%Y-%m'),'-01') 
+    			<![CDATA[ and DATE_FORMAT(create_time,'%Y-%m-%d') <= DATE_FORMAT(SYSDATE(),'%Y-%m-%d') ]]>	
+    		) t 
+    	GROUP BY address
+    </select>
+    <!-- 当月还款金额(按地区分组) -->
+    <select id="sumMonthBorrowRepayByProvince" resultType="map">
+    	select address 'key',sum(amount) 'value' from
+    	(select amount,(case when LOCATE('省', address) >0 then left (address, LOCATE('省', address)-1) when trim(address) in ('北京','上海') then trim(address) end ) address
+    	from cl_borrow_main  where id in
+    	(select p.borrow_id from cl_borrow_main_progress  p where  DATE_FORMAT(p.create_time,'%Y-%m-%d') >= CONCAT(DATE_FORMAT(SYSDATE(),'%Y-%m'),'-01')
+    	and p.state in(40,41)) ) t GROUP BY address
+    </select>
+    <!-- 当月新增用户(按地区分组) -->
+    <select id="countMonthRegisterByProvince" resultType="map">
+    	select register_addr 'key',count(user_id) 'value' from
+    	(select bi.user_id,(case when LOCATE('省', bi.register_addr) >0 then left (bi.register_addr, LOCATE('省', bi.register_addr)-1) when trim(bi.register_addr) in ('北京','上海') then trim(bi.register_addr) end ) register_addr
+    	from cl_user u LEFT JOIN cl_user_base_info bi on u.id = bi.user_id
+    	where DATE_FORMAT(u.regist_time,'%Y-%m-%d') >= CONCAT(DATE_FORMAT(SYSDATE(),'%Y-%m'),'-01') and bi.register_addr != '') t GROUP BY register_addr
+    </select>
+    <!-- 最近15日每天放款量  -->
+    <select id="countFifteenDaysLoan"  resultType="map">
+    	select create_time 'key',count(id) 'value' from 
+    		(select id,DATE_FORMAT(create_time,'%Y-%m-%d') create_time 
+    			from cl_borrow_main_progress
+    			where state = '30' 
+    			and DATE_FORMAT(create_time,'%Y-%m-%d') >= DATE_FORMAT(DATE_SUB(SYSDATE(), INTERVAL 15 DAY),'%Y-%m-%d') 
+    		) t 
+    	GROUP BY create_time
+    </select>
+
+
+    <select id="countRepaySource" resultType="map">
+        SELECT repay_way 'key', count(id) 'value' FROM
+        ( SELECT id, CASE WHEN repay_way = '10' THEN '自动代扣' WHEN repay_way = '20' THEN '银行卡转账' WHEN repay_way = '30' THEN '支付宝转账' WHEN repay_way = '40' THEN '主动还款' ELSE '其它' END repay_way FROM
+        cl_borrow_repay_log
+        WHERE
+        <![CDATA[ DATE_FORMAT(create_time, '%Y-%m-%d') <= date_sub(curdate(), INTERVAL 1 DAY) ]]>) t
+        GROUP BY repay_way
+    </select>
+
+    <!-- 最近15日应还款量 -->
+    <select id="countFifteenDaysNeedRepay" resultType="map">
+    	select repay_time 'key',count(id) 'value' from 
+    		(select id,DATE_FORMAT(repay_time,'%Y-%m-%d') repay_time 
+				from cl_borrow_repay
+				where DATE_FORMAT(repay_time,'%Y-%m-%d') >= DATE_FORMAT(DATE_SUB(SYSDATE(), INTERVAL 15 DAY),'%Y-%m-%d') 
+				<![CDATA[ and DATE_FORMAT(repay_time,'%Y-%m-%d') <= DATE_FORMAT(SYSDATE(),'%Y-%m-%d') ]]>	
+			) t 
+		GROUP BY repay_time
+    </select>
+    <!-- 最近15日实际还款量 -->
+    <select id="countFifteenDaysRealRepay" resultType="map">
+    	select create_time 'key',count(id) 'value' from 
+    		(select id,DATE_FORMAT(create_time,'%Y-%m-%d') create_time 
+    			from cl_borrow_main_progress
+    			where state = '40' 
+    			and DATE_FORMAT(create_time,'%Y-%m-%d') >= DATE_FORMAT(DATE_SUB(SYSDATE(), INTERVAL 15 DAY),'%Y-%m-%d') 
+    		) t 
+    	GROUP BY create_time
+    </select>
+
+</mapper>
