@@ -87,4 +87,14 @@ public interface NoticesService {
      * @Date: 2018/7/25 16:29
      */
     void repayBefore(long userId, long borrowId);
+    /**
+     * 提额提醒
+     * @method: upgradeCredit
+     * @param userId
+     * @return: void
+     * @throws
+     * @Author: Mr.Wange
+     * @Date: 2018/7/25 16:29
+     */
+    void upgradeCredit(long userId);
 }

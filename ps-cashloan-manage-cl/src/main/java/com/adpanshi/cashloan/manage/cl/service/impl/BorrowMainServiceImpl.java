@@ -255,6 +255,15 @@ public class BorrowMainServiceImpl implements BorrowMainService{
         return resultState;
     }
 
+    @Override
+    public void commitAudit(Long borrowMainId, String realName) {
+        BorrowMain borrowMain = new BorrowMain();
+        borrowMain.setId(borrowMainId);
+        borrowMain.setAuditTime(new Date());
+        borrowMain.setAuditName(realName);
+        borrowMainMapper.updateByPrimaryKeySelective(borrowMain);
+    }
+
     public void borrowLoan(BorrowMain borrow, Date date) {
         Long userId = borrow.getUserId();
         User user = userMapper.selectByPrimaryKey(userId);
@@ -417,7 +426,7 @@ public class BorrowMainServiceImpl implements BorrowMainService{
         Integer againBorrow = Global.getInt("again_borrow");
         Date dt = new Date();
         int day = DateUtil.daysBetween(borrow.getCreateTime(),dt);
-        day = againBorrow - day;
+        day = againBorrow - day >0 ? againBorrow - day : 0;
 //        //审核不通过发送短信通知
         smsService.refuse(userId,day,borrow.getOrderNo());
 //        //审核不通过消息通知

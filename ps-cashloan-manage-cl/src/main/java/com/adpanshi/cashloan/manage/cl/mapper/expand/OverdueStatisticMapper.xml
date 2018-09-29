@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 逾期数据统计 -->
+<mapper namespace="com.adpanshi.cashloan.manage.cl.mapper.expand.OverdueStatisticMapper">
+    <select id="getStatisticIndex" resultType="HashMap">
+        select  count(*) as overdueCount,sum(b.real_amount ) as overdueSum from cl_borrow_repay br left join cl_borrow b on br.borrow_id = b.id where br.state = 20 and br.penalty_day > 0
+    </select>
+</mapper>

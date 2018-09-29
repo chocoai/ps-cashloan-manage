@@ -125,4 +125,12 @@ public interface BorrowProgressMapper {
      */
     List<BorrowProgress> findProcessByState(@Param("borrowId") Long borrowId, @Param("stateList") Collection<String> stateList);
 
+    /**
+     * 获取一条记录
+     *
+     * @param paramMap
+     *            查询条件
+     * @return 查询结果
+     */
+    BorrowProgress findSelective(Map<String, Object> paramMap);
 }

@@ -22,4 +22,19 @@ public class UserAppsModel extends UserApps implements Comparable<UserAppsModel>
     public int compareTo(UserAppsModel o) {
         return this.status.compareTo(o.status);
     }
+
+    public static UserAppsModel parse(UserApps apps) {
+        UserAppsModel model = new UserAppsModel();
+        model.setUserId(apps.getUserId());
+        model.setPackageName(apps.getPackageName());
+        model.setAppName(apps.getAppName());
+        model.setIexpress(apps.getIexpress());
+        model.setSystemType(apps.getSystemType());
+        model.setIexpress(apps.getIexpress());
+        model.setGmtCreateTime(apps.getGmtCreateTime());
+        model.setRemarks(apps.getRemarks());
+        model.setId(apps.getId());
+        model.setState(apps.getState());
+        return model;
+     }
 }

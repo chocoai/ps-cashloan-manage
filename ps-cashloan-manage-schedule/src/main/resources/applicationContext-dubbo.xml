@@ -9,7 +9,7 @@
 	http://code.alibabatech.com/schema/dubbo/dubbo.xsd">
 
     <!-- Dubbo配置 -->
-    <dubbo:application name="ps-cashloan-manage-center" logger="${dubbo.application.logger}"/>
+    <dubbo:application name="ps-cashloan-manage-schedule-center" logger="${dubbo.application.logger}"/>
     <!-- 通过 广播通知所有人-->
     <dubbo:registry id="cashloan" address="${cashloan.registry.address}" protocol="${cashloan.registry.protocol}"/>
     <dubbo:protocol name="${protocol.name}" port="${protocol.port}" threads="500" payload="${protocol.payload}"/>

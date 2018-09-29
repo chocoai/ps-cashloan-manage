@@ -418,10 +418,10 @@
         and cbm.state like concat("%",#{state,jdbcType=VARCHAR},"%")
       </if>
       <if test="reviewStartTime != null and reviewStartTime != ''">
-        and cbm.audit_time  &gt;= #{reviewStartTime,jdbcType=TIMESTAMP}
+        and DATE_FORMAT(cbm.audit_time, '%Y-%m-%d') &gt;= DATE_FORMAT(#{reviewStartTime,jdbcType=TIMESTAMP}, '%Y-%m-%d')
       </if>
       <if test="reviewEndTime != null and reviewEndTime != ''">
-        and cbm.audit_time &lt;= #{reviewStartTime,jdbcType=VARCHAR}
+        and DATE_FORMAT(cbm.audit_time, '%Y-%m-%d') &lt;= DATE_FORMAT(#{reviewEndTime,jdbcType=TIMESTAMP}, '%Y-%m-%d')
       </if>
       <if test="startTimeLimit != null and startTimeLimit != ''">
         and cbm.time_limit &gt;= 0+ #{startTimeLimit,jdbcType=VARCHAR}

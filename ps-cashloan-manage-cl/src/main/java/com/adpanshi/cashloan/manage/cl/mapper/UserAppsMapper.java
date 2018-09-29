@@ -4,6 +4,7 @@ import com.adpanshi.cashloan.common.mapper.RDBatisDao;
 import com.adpanshi.cashloan.manage.cl.model.UserApps;
 import com.adpanshi.cashloan.manage.cl.model.UserAppsExample;
 import java.util.List;
+import java.util.Map;
 import org.apache.ibatis.annotations.Param;
 @RDBatisDao
 public interface UserAppsMapper {
@@ -94,4 +95,11 @@ public interface UserAppsMapper {
      * @mbg.generated
      */
     int updateByPrimaryKey(UserApps record);
+    /**
+     * <p>根据给定的条件查询</p>
+     * @param tableName 待操作的表
+     * @param userApps
+     * @return List<UserApps>
+     * */
+    List<UserApps> listSelective(@Param("tableName")String tableName,@Param("item")Map<String,Object> userApps);
 }

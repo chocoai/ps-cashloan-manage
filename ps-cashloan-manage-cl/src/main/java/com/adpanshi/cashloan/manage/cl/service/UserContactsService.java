@@ -1,6 +1,7 @@
 package com.adpanshi.cashloan.manage.cl.service;
 
 import com.adpanshi.cashloan.manage.cl.model.UserContacts;
+import com.adpanshi.cashloan.manage.cl.model.expand.UserContactsModel;
 import com.github.pagehelper.Page;
 
 /**
@@ -11,7 +12,8 @@ import com.github.pagehelper.Page;
 public interface UserContactsService {
     /**
      *  获取用户通讯录信息
-     * @param userId,
+     * @param userId
+     * @param phone
      * @param current
      * @param pageSize
      * @return Page<UserContacts>
@@ -19,5 +21,5 @@ public interface UserContactsService {
      * @author Vic Tang
      * @date 2018/8/6 11:11
      * */
-    Page<UserContacts> listContactsNew(Long userId, Integer current, Integer pageSize);
+    Page<UserContactsModel> listContactsNew(Long userId,String phone,Integer current, Integer pageSize);
 }

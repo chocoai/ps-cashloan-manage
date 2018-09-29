@@ -1,9 +1,8 @@
 package com.adpanshi.cashloan.manage.cl.service.impl;
 
-import com.adpanshi.cashloan.manage.cl.mapper.AppMsgTplMapper;
-import com.adpanshi.cashloan.manage.cl.mapper.BorrowMainMapper;
-import com.adpanshi.cashloan.manage.cl.mapper.BorrowRepayMapper;
-import com.adpanshi.cashloan.manage.cl.mapper.NoticesMapper;
+import com.adpanshi.cashloan.manage.cl.domain.CreditsUpgrade;
+import com.adpanshi.cashloan.manage.cl.domain.CreditsUpgradeLog;
+import com.adpanshi.cashloan.manage.cl.mapper.*;
 import com.adpanshi.cashloan.manage.cl.model.AppMsgTpl;
 import com.adpanshi.cashloan.manage.cl.model.AppMsgTplExample;
 import com.adpanshi.cashloan.manage.cl.model.BorrowMain;
@@ -41,6 +40,10 @@ public class NoticesServiceImpl implements NoticesService {
     private AppMsgTplMapper appMsgTplMapper;
     @Resource
     private BorrowRepayMapper borrowRepayMapper;
+    @Resource
+    private CreditsUpgradeMapper creditsUpgradeMapper;
+    @Resource
+    private CreditsUpgradeLogMapper creditsUpgradeLogMapper;
     @Override
     public Page<Notices> queryNoticesList(Map<String, Object> params, int currentPage, int pageSize) {
         PageHelper.startPage(currentPage, pageSize);
@@ -161,6 +164,43 @@ public class NoticesServiceImpl implements NoticesService {
                             .replace("{$loan}",brm.getAmount()+"");
                     save(userId,tpl.getName(),content);
                 }
+            }
+        } catch (Exception e) {
+            logger.error("生成消息异常，异常原因:",e);
+        }
+    }
+
+    /**
+     * 提额消息推送
+     *
+     * @throws
+     * @method: upgradeCredit
+     * @return: void
+     * @Author: Mr.Wange
+     * @Date: 2018/7/25 16:29
+     * @param userId
+     */
+    @Override
+    public void upgradeCredit(long userId) {
+        try{
+            Map<String,Object> paramMap = new HashMap<>();
+            paramMap.put("userId",userId);
+            paramMap.put("status",1);
+            CreditsUpgrade creditsUpgrade = creditsUpgradeMapper.findSelective(paramMap);
+            CreditsUpgradeLog creditsUpgradeLog = creditsUpgradeLogMapper.findLatestRecord(paramMap);
+            if( creditsUpgradeLog!= null && creditsUpgrade !=null){
+                AppMsgTplExample example = new AppMsgTplExample();
+                example.createCriteria().andTypeEqualTo("upgradeCredit").andStateEqualTo(10);
+                List<AppMsgTpl> infos = appMsgTplMapper.selectByExample(example);
+                if(infos.size() > 0) {
+                    AppMsgTpl tpl = infos.get(0);
+                    String content = tpl.getContent().replace("{$money}",String.valueOf(creditsUpgradeLog.getCredits()))
+                            .replace("{$level}",String.valueOf(creditsUpgradeLog.getCreditsLeve()));
+                    save(userId,tpl.getName(),content);
+                }
+                //如果保存消息没有异常，更新提额发送状态:3(发送成功)
+                creditsUpgrade.setSendStatus(3);
+                creditsUpgradeMapper.update(creditsUpgrade);
             }
         } catch (Exception e) {
             logger.error("生成消息异常，异常原因:",e);

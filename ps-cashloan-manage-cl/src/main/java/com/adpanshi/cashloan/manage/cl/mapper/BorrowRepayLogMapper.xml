@@ -542,4 +542,12 @@
     JOIN cl_borrow_repay_log l ON b.`id` = l.`borrow_id`
     WHERE b.borrow_main_id = #{id,jdbcType=BIGINT}
   </select>
+
+  <select id="selectBorrowRepayLog" resultMap="borrowRaylogMap" parameterType="java.util.HashMap">
+        select
+        b.time_limit,l.repay_time,l.penalty_day,l.borrow_id,l.user_id
+        from cl_borrow b
+        join cl_borrow_repay_log l on l.borrow_id=b.id
+        where b.id = #{borrowId,jdbcType=BIGINT}
+    </select>
 </mapper>

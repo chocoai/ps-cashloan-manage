@@ -185,6 +185,27 @@
       <include refid="Example_Where_Clause" />
     </if>
   </select>
+  <select id="countTable" resultType="java.lang.Integer" parameterType="java.lang.String">
+    SELECT COUNT(1) FROM information_schema.TABLES WHERE table_name = #{tableName,jdbcType=VARCHAR} and TABLE_SCHEMA = database()
+  </select>
+  <!--基础表查询-->
+  <sql id="base">
+    SELECT name,phone,id,user_id FROM ${tableName}  WHERE user_id = #{params.userId}
+  </sql>
+  <select id="listShardSelectiveNew"
+          resultType="com.adpanshi.cashloan.manage.cl.model.expand.UserContactsModel">
+    SELECT t1.id,t1.name,t1.phone,t1.user_id as userId,IFNULL(t2.state,0) state  FROM (<include refid="base"/>) t1
+    LEFT JOIN
+    (SELECT a.name,a.phone,a.id,a.user_id, 1 AS state FROM
+    (<include refid="base"/>) a
+    WHERE exists(SELECT * FROM cl_user_emer_contacts WHERE user_id = a.user_id AND a.phone LIKE concat( '%', phone, '%' ))
+    ) t2
+    ON t1.id=t2.id
+    <if test="params.phone !=null and params.phone != '' ">
+      WHERE t1.phone LIKE concat( '%', #{params.phone}, '%' )
+    </if>
+    ORDER BY state DESC
+  </select>
   <update id="updateByExampleSelective" parameterType="map">
     <!--
       WARNING - @mbg.generated

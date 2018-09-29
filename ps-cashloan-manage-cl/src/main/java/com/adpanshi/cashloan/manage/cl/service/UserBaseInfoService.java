@@ -31,6 +31,15 @@ public interface UserBaseInfoService {
     int updateState(Long userId,String remarks,AuthUserRole authUserRole);
 
     /**
+     *
+     * @param id
+     * @param state
+     * @param remarks
+     * @return
+     */
+    int updateState(long id, String state,String remarks);
+
+    /**
      *  放款用户详情
      * @param
      * @throws

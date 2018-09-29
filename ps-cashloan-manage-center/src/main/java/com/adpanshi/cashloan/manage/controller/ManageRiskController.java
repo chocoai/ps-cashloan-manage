@@ -156,7 +156,7 @@ public class ManageRiskController extends ManageBaseController {
                 params = parseToMap(searchParams,true);
         //订单状态
         List<String> stateList = new ArrayList<>();
-        if (null != params && params.size() > 0) {
+        if (null != params && params.get("state") != null) {
             String state = String.valueOf(params.get("state"));
             if (null != BorrowEnum.BORROW_STATE.getByEnumKey(state)) {
                 stateList.add(state);

@@ -4,6 +4,8 @@ import com.adpanshi.cashloan.common.mapper.RDBatisDao;
 import com.adpanshi.cashloan.manage.arc.model.Credit;
 import com.adpanshi.cashloan.manage.arc.model.CreditExample;
 import java.util.List;
+import java.util.Map;
+
 import org.apache.ibatis.annotations.Param;
 @RDBatisDao
 public interface CreditMapper {
@@ -94,4 +96,18 @@ public interface CreditMapper {
      * @mbg.generated
      */
     int updateByPrimaryKey(Credit record);
+
+    /**
+     * 获取一条记录
+     * @param paramMap
+     * @return 查询结果
+     */
+    Credit findSelective(Map<String, Object> paramMap);
+
+    /**
+     * 更新额度
+     * @param map
+     * @return
+     */
+    int updateAmount(Map<String, Object> map);
 }

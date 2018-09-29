@@ -15,6 +15,7 @@ import com.adpanshi.cashloan.manage.cl.model.expand.BorrowRepayModel;
 import com.adpanshi.cashloan.manage.cl.model.expand.UrgeRepayOrderModel;
 import com.adpanshi.cashloan.manage.cl.pojo.*;
 import com.adpanshi.cashloan.manage.cl.service.BorrowRepayService;
+import com.adpanshi.cashloan.manage.cl.service.CreditsUpgradeService;
 import com.adpanshi.cashloan.manage.cl.service.NoticesService;
 import com.adpanshi.cashloan.manage.cl.service.SmsService;
 import com.adpanshi.cashloan.manage.core.common.context.ExportConstant;
@@ -67,6 +68,8 @@ public class BorrowRepayServiceImpl implements BorrowRepayService{
     private BorrowMainProgressMapper borrowMainProgressMapper;
     @Resource
     private UserDataPackageDomain userDataPackageDomain;
+    @Resource
+    private CreditsUpgradeService creditsUpgradeService;
 
     @Override
     public Page<BorrowRepayModel> listModel(Map<String, Object> params, Integer currentPage, Integer pageSize) {
@@ -239,6 +242,12 @@ public class BorrowRepayServiceImpl implements BorrowRepayService{
                 }
             }
         }
+        //判断用户是否满足提额要求
+        boolean sendNotice = creditsUpgradeService.isCanCreditUpgrade(br.getUserId());
+        if(sendNotice){
+            //推送站内消息告诉用户提额
+            noticesService.upgradeCredit(br.getUserId());
+        }
         //发送短信还款短信
         smsService.activePayment(br.getUserId(),borrow.getBorrowMainId(),repayTime,amount,borrow.getOrderNo());
         //还款消息通知
@@ -379,7 +388,12 @@ public class BorrowRepayServiceImpl implements BorrowRepayService{
             log.setUserId(br.getUserId());
             log.setAmount(new BigDecimal((Double)param.get("amount")));// 实际还款金额
             log.setRepayTime(repayTime);// 实际还款时间
-            log.setPenaltyDay(Integer.parseInt((String) param.get("penaltyDay")));
+            try {
+                log.setPenaltyDay(Integer.parseInt((String) param.get("penaltyDay")));
+            } catch(Exception e){
+                logger.error(e.getMessage());
+                log.setPenaltyDay((Integer)param.get("penaltyDay"));
+            }
             log.setPenaltyAmout(new BigDecimal((Double) param.get("penaltyAmout")));
             //计算提前还款手续费
             BigDecimal fee=getFee(br.getBorrowId(),br.getUserId(), br.getRepayTime(), repayTime);

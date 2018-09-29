@@ -24,23 +24,26 @@ public class CreditServiceImpl implements CreditService{
     @Resource
     private CreditMapper creditMapper;
     @Override
-    public int modifyCreditAfterLoan(Long userId, BigDecimal amount) {
+    public int modifyCreditAfterLoan(Long userId, BigDecimal amount, boolean isCreditsUpgrade) {
         CreditExample example =  new CreditExample();
         example.createCriteria().andConsumerNoEqualTo(userId.toString());
         List<Credit> infos = creditMapper.selectByExample(example);
         if(infos.size() > 0){
             Credit credit = infos.get(0);
             BigDecimal diff = credit.getUnuse().subtract(amount);
-            if(diff.compareTo(BigDecimal.ZERO) != -1){
-                BigDecimal used = credit.getUsed().add(amount);
-                Credit record = new Credit();
-                record.setId(credit.getId());
-                record.setUnuse(diff);
-                record.setUsed(used);
-                return creditMapper.updateByPrimaryKeySelective(record);
-            }else{
-                throw new BussinessException("【放款】更新额度失败，不能出现负值,userId:" + userId);
+            if(!isCreditsUpgrade){
+                if(diff.compareTo(BigDecimal.ZERO) != -1){
+                    BigDecimal used = credit.getUsed().add(amount);
+                    Credit record = new Credit();
+                    record.setId(credit.getId());
+                    record.setUnuse(diff);
+                    record.setUsed(used);
+                    return creditMapper.updateByPrimaryKeySelective(record);
+                }else{
+                    throw new BussinessException("【放款】更新额度失败，不能出现负值,userId:" + userId);
+                }
             }
+            return 1;
         } else {
             throw new BussinessException("【放款】更新额度失败，未找到用户额度信息，userId:" + userId);
         }

@@ -1,0 +1,1 @@
+DubboServiceFilter=com.adpanshi.cashloan.manage.interceptor.DubboServiceFilter

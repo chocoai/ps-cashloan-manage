@@ -16,7 +16,7 @@
 		<constructor-arg name="poolConfig" ref="jedisPoolConfig" />
 		<constructor-arg name="host" value="${redis.ip}" />
 		<constructor-arg name="port" value="${redis.port}" />
-		<constructor-arg name="password" value="${redis.password}"/>
+		<constructor-arg name="password" ><null/></constructor-arg>
 		<constructor-arg name="database" value="${redis.database}" />
 		<constructor-arg name="timeout" value="${redis.maxwaitmillis}" />
 	</bean>

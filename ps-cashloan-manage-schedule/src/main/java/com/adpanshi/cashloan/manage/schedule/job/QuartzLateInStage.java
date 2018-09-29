@@ -48,6 +48,7 @@ public class QuartzLateInStage implements Job {
     private final BorrowProgressService borrowProgressService;
     private final BorrowService clBorrowService;
     private final UrgeRepayOrderService urgeRepayOrderService;
+    private final UserBaseInfoService userBaseInfoService;
 
     private volatile AtomicInteger succeed = new AtomicInteger(0);
     private volatile AtomicInteger fail = new AtomicInteger(0);
@@ -59,6 +60,7 @@ public class QuartzLateInStage implements Job {
                 ("borrowRepayService");
         borrowProgressService = (BorrowProgressService) BeanUtil.getBean("borrowProgressService");
         urgeRepayOrderService = (UrgeRepayOrderService) BeanUtil.getBean("urgeRepayOrderService");
+        userBaseInfoService = (UserBaseInfoService) BeanUtil.getBean("userBaseInfoService");
         clBorrowService = (BorrowService) BeanUtil.getBean("borrowService");
     }
 
@@ -182,6 +184,16 @@ public class QuartzLateInStage implements Job {
         br.setPenaltyDay(day);
         logger.info("id--" + repayModel.getRepayId() + " ==> 已经逾期 " + day + " 天,逾期费用 " + penaltyAmount + "元");
         int msg = borrowRepayService.updateLate(br);
+
+        String overdueBlacklist = "overdue_blacklist_days";
+        if(day > Global.getInt(overdueBlacklist)){
+            UserBaseInfo userBaseInfo = userBaseInfoService.getBaseModelByUserId(repayModel.getUserId());
+            //非黑名单状态
+            String state = "20";
+            if(state.equals(userBaseInfo.getState())){
+                userBaseInfoService.updateState(repayModel.getUserId(),"10","The overdue loan exceeds the prescribed time limit");
+            }
+        }
 
         if (msg <= 0) {
             return false;

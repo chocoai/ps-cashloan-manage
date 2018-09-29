@@ -570,4 +570,11 @@
     FROM cl_borrow_repay AS cbr LEFT JOIN cl_borrow AS cb ON cbr.borrow_id = cb.id
     WHERE cb.id = #{id,jdbcType=BIGINT}
   </select>
+  <!-- 查询某个人是否成功还款过-->
+  <select id="findRepayWithUser" resultMap="BaseResultMap" parameterType="java.lang.Long">
+        select
+            repay.id,repay.user_id,repay.borrow_id,repay.amount,repay.repay_time,repay.state,repay.penalty_amout,repay.penalty_day
+        from cl_borrow_repay repay  where state=10
+        and repay.user_id = #{userId,jdbcType = BIGINT} order by repay.repay_time desc
+    </select>
 </mapper>

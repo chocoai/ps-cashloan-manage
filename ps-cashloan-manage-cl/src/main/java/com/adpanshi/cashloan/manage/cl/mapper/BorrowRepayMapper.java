@@ -145,4 +145,11 @@ public interface BorrowRepayMapper {
     List<BorrowRepay> listSelective(Map<String, Object> paramMap);
 
     List<OverDueUser> listOverDueUser();
+
+    /**
+     * 判断是否为复借用户（规则为：成功借款且成功还款，暂不考虑逾期）
+     * @param userId
+     * @return
+     */
+    List<BorrowRepay> findRepayWithUser(long userId);
 }

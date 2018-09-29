@@ -47,6 +47,26 @@ public class UserBaseInfoServiceImpl implements UserBaseInfoService{
         return i;
     }
 
+    /**
+     * @param id
+     * @param state
+     * @param remarks
+     * @return
+     */
+    @Override
+    public int updateState(long id, String state, String remarks) {
+        int i = 0;
+        UserBaseInfo base=userBaseInfoMapper.getBaseModelByUserId(id);
+        if (base != null) {
+            UserBaseInfo baseInfo = new UserBaseInfo();
+            baseInfo.setId(base.getId());
+            baseInfo.setState(state);
+            baseInfo.setBlackReason(remarks);
+            i = userBaseInfoMapper.updateByPrimaryKeySelective(baseInfo);
+        }
+        return i;
+    }
+
     @Override
     public List<UserBaseInfoModel> findLoanUserInfo() {
         return userBaseInfoMapper.findLoanUserInfo();

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.adpanshi.cashloan.manage.cl.mapper.CreditsUpgradeLogMapper">
+	<resultMap type="com.adpanshi.cashloan.manage.cl.domain.CreditsUpgradeLog" id="BaseResultMap">
+        <result property="id" column="id" jdbcType="BIGINT"/>
+        <result property="parentId" column="parent_id" jdbcType="BIGINT"/>
+        <result property="userId" column="user_id" jdbcType="BIGINT"/>
+        <result property="creditsLeve" column="credits_leve" jdbcType="INTEGER"/>
+        <result property="credits" column="credits" jdbcType="DECIMAL"/>
+        <result property="createTime" column="create_time" jdbcType="TIMESTAMP"/>
+        <result property="updateTime" column="update_time" jdbcType="TIMESTAMP"/>
+	</resultMap>
+	
+	<sql id="Base_Column_List" >
+        t.id,
+        t.parent_id,
+        t.user_id,
+        t.credits_leve,
+        t.credits,
+        t.create_time,
+        t.update_time
+	</sql>
+	
+	<!-- 查询条件 -->
+	<sql id="searchBy">
+		 <if test="id !=null and id !=''">
+            AND t.id = #{id,jdbcType=BIGINT}
+         </if>
+        <if test="parentId !=null and parentId !=''">
+            AND t.parent_id = #{parentId,jdbcType=BIGINT}
+        </if>
+		 <if test="userId !=null and userId !=''">
+            AND t.user_id = #{userId,jdbcType=BIGINT}
+         </if>
+		 <if test="creditsLeve !=null and creditsLeve !=''">
+            AND t.credits_leve = #{creditsLeve,jdbcType=INTEGER}
+         </if>
+		 <if test="credits !=null and credits !=''">
+            AND t.credits = #{credits,jdbcType=DECIMAL}
+         </if>
+		 <if test="createTime !=null">
+            AND t.create_time = #{createTime,jdbcType=TIMESTAMP}
+         </if>
+		 <if test="updateTime !=null">
+            AND t.update_time = #{updateTime,jdbcType=TIMESTAMP}
+         </if>
+	</sql>
+
+	<insert id="save" parameterType="com.adpanshi.cashloan.manage.cl.domain.CreditsUpgradeLog" >
+		<![CDATA[
+	        INSERT INTO arc_credits_upgrade_log (
+	            parent_id,
+	            credits_leve ,
+	            credits ,
+	            user_id,
+	            create_time ,
+	            update_time
+	        ) VALUES (
+	        	#{parentId,jdbcType=BIGINT},
+	        	#{creditsLeve,jdbcType=INTEGER},
+	        	#{credits,jdbcType=DECIMAL},
+	        	#{userId,jdbcType=BIGINT},
+	        	now(),
+	        	now()
+	        )
+	    ]]>
+    	<selectKey resultType="java.lang.Long" keyProperty="id">
+			SELECT LAST_INSERT_ID() AS id
+        </selectKey>
+	</insert>
+
+    <update id="updateSelective"  parameterType="java.util.HashMap">
+        update arc_credits_upgrade_log
+        <set>
+            <if test="parentId != null and parentId != '' ">
+                parent_id = #{parentId,jdbcType=INTEGER} ,
+            </if>
+            <if test="creditsLeve != null and creditsLeve != '' ">
+                credits_leve = #{creditsLeve,jdbcType=INTEGER} ,
+            </if>
+            <if test="credits != null and credits != '' ">
+                credits = #{credits,jdbcType=DECIMAL} ,
+            </if>
+            <if test="userId != null and userId != '' ">
+                user_id = #{userId,jdbcType=BIGINT} ,
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime,jdbcType=TIMESTAMP} ,
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime,jdbcType=TIMESTAMP} ,
+            </if>
+        </set>
+        where id = #{id ,jdbcType=INTEGER}
+    </update>
+	
+	<select id="listSelective" parameterType="java.util.HashMap" resultMap="BaseResultMap">
+		SELECT <include refid="Base_Column_List" />
+	    FROM arc_credits_upgrade_log t
+		<where> <include refid="searchBy"/>  </where>
+		ORDER BY t.create_time DESC
+	</select>
+
+
+    <select id="findSelective" parameterType="java.util.HashMap" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM arc_credits_upgrade_log t
+        <where> <include refid="searchBy"/>  </where>
+        ORDER BY t.create_time DESC
+    </select>
+
+    <select id="findLatestRecord" parameterType="java.util.HashMap" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM arc_credits_upgrade_log t
+        <where> <include refid="searchBy"/>  </where>
+        ORDER BY t.create_time DESC limit 1
+    </select>
+
+
+    <select id="listSelectByParentId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM arc_credits_upgrade_log t
+        inner join arc_credits_upgrade d on d.id=t.parent_id and d.status = 1
+        where t.parent_id = #{parentId,jdbcType=BIGINT}
+        ORDER BY t.create_time
+    </select>
+
+
+</mapper>

@@ -12,11 +12,13 @@ import com.adpanshi.cashloan.manage.cl.model.*;
 import com.adpanshi.cashloan.manage.cl.model.expand.*;
 import com.adpanshi.cashloan.manage.cl.model.moxie.*;
 import com.adpanshi.cashloan.manage.cl.pojo.CallRecord;
+import com.adpanshi.cashloan.manage.cl.pojo.CallRecordCount;
 import com.adpanshi.cashloan.manage.cl.pojo.equifaxReport.Envelope;
 import com.adpanshi.cashloan.manage.cl.service.*;
 import com.adpanshi.cashloan.manage.core.common.cache.RedissonClientUtil;
 import com.adpanshi.cashloan.manage.core.common.context.Constant;
 import com.adpanshi.cashloan.manage.core.common.pojo.AuthUserRole;
+import com.adpanshi.cashloan.manage.core.common.util.DateUtil;
 import com.adpanshi.cashloan.manage.core.common.util.RdPage;
 import com.adpanshi.cashloan.manage.core.common.util.StringUtil;
 import com.adpanshi.cashloan.manage.pojo.ResultModel;
@@ -104,7 +106,12 @@ public class ManageLoanOtherController extends ManageBaseController {
     private AuditDomain auditDomain;
     @Resource
     private OperatorReqLogService operatorReqLogService;
-
+    @Resource
+    private UserContactsService userContactsService;
+    @Resource
+    private UserAppsService userAppsService;
+    @Resource
+    private UserCallRecordService userCallRecordService;
 
     /**
      * 用户管理:详情
@@ -177,6 +184,9 @@ public class ManageLoanOtherController extends ManageBaseController {
             String resultState = borrowMainService.manualVerifyBorrow(borrowMainId, state, remark, user.getUserId(), user
                     .getRealName(), orderView);
             Boolean isSuccess;
+            if(!BorrowModel.STATE_HANGUP.equals(state)){
+                borrowMainService.commitAudit(borrowMainId,user.getRealName());
+            }
             if(StringUtils.isNotEmpty(resultState)){
                 isSuccess = true;
             }else {
@@ -301,10 +311,12 @@ public class ManageLoanOtherController extends ManageBaseController {
         }
         UserBaseInfo userBaseInfo = userBaseInfoService.getBaseModelByUserId(userId);
         if(userBaseInfo.getUserDataId() == null){
-            return new ResponseEntity<>(ResultModel.error(ManageExceptionEnum.FAIL_CODE_PARAM_INSUFFICIENT), HttpStatus.OK);
+            Page<UserContactsModel> page = userContactsService.listContactsNew(userId,phone,current, pageSize);
+            result.put(Constant.RESPONSE_DATA, page);
+            result.put(Constant.RESPONSE_DATA_PAGE, new RdPage(page));
+            return new ResponseEntity<>(ResultModel.ok(result), HttpStatus.OK);
         }else{
             Integer userDataId = userBaseInfo.getUserDataId().intValue();
-//            String resultJson = "{\\\"userId\\\":\\\"161\\\",\\\"info\\\":[{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"房东\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"哥\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"咖啡厅宝珠\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"胡小燕\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"黄老师\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"焦小娟\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"凯丽\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"老爸\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"刘加友\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"刘云\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"罗国群\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"妈\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"妈\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"单素玲\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"王蓉\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"王晓羽\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"晏丽梅\\\"},{\\\"phone\\\":\\\"\\\",\\\"name\\\":\\\"杨晓倩\\\"}]}";
             String resultJson = (String )auditDomain.getAuditInfo(userDataId,ChannelType.PSAPP,ChannelBizType.APP_COMMUNICATION).getData();
             if(resultJson != null){
                 JSONArray array= JSONArray.parseArray(resultJson);
@@ -340,13 +352,9 @@ public class ManageLoanOtherController extends ManageBaseController {
                 result.put(Constant.RESPONSE_DATA, data);
                 result.put(Constant.RESPONSE_DATA_PAGE, page);
             } else {
-                RdPage page = new RdPage();
-                page.setTotal(0);
-                page.setPageSize(pageSize);
-                page.setCurrent(current);
-                page.setPages(0);
-                result.put(Constant.RESPONSE_DATA, new ArrayList<>());
-                result.put(Constant.RESPONSE_DATA_PAGE, page);
+                Page<UserContactsModel> page = userContactsService.listContactsNew(userId,phone,current, pageSize);
+                result.put(Constant.RESPONSE_DATA, page);
+                result.put(Constant.RESPONSE_DATA_PAGE, new RdPage(page));
             }
             return new ResponseEntity<>(ResultModel.ok(result), HttpStatus.OK);
         }
@@ -403,10 +411,43 @@ public class ManageLoanOtherController extends ManageBaseController {
         }
         UserBaseInfo userBaseInfo = userBaseInfoService.getBaseModelByUserId(userId);
         if(userBaseInfo.getUserDataId() == null){
-            return new ResponseEntity<>(ResultModel.error(ManageExceptionEnum.FAIL_CODE_PARAM_INSUFFICIENT), HttpStatus.OK);
+            Map<String,Object> map = new HashMap<>();
+            map.put("userId",userId);
+            List<UserApps> appsInfo = userAppsService.listSelective(userId,map);
+            List<UserAppsModel> realData = new ArrayList<>();
+            Integer sum = 0;
+            RdPage page = new RdPage();
+            if(appsInfo.size() > 0){
+                for(int i = 0;i < appsInfo.size();i++){
+                    UserAppsModel model = UserAppsModel.parse(appsInfo.get(i));
+                    model.setStatus(0);
+                    if((!StringUtils.isEmpty(model.getAppName()) &&
+                            Constant.LOAN_APP_NAME.contains(model.getAppName())) ||
+                            (!StringUtils.isEmpty(model.getPackageName()) &&
+                                    Constant.LOAN_APP_PACKAGE_NAME.contains(model.getPackageName()))){
+                        model.setStatus(1);
+                        sum ++;
+                    }
+                    realData.add(model);
+                }
+                realData.sort(Comparator.comparing(UserAppsModel::getStatus).reversed());
+                List<UserAppsModel> data = listToPage(realData,page,current,pageSize);
+                result.put(Constant.RESPONSE_DATA, data);
+                result.put("count", sum);
+                result.put(Constant.RESPONSE_DATA_PAGE, page);
+            } else {
+                page.setTotal(0);
+                page.setPageSize(pageSize);
+                page.setCurrent(current);
+                page.setPages(0);
+                result.put(Constant.RESPONSE_DATA, new ArrayList<>());
+                result.put("count", sum);
+                result.put(Constant.RESPONSE_DATA_PAGE, page);
+            }
+            return new ResponseEntity<>(ResultModel.ok(result), HttpStatus.OK);
         }else{
             Integer userDataId = userBaseInfo.getUserDataId().intValue();
-            int count = 0;
+            int sum = 0;
             String resultJson = (String)auditDomain.getAuditInfo(userDataId, ChannelType.PSAPP, ChannelBizType.APP_APPLICATION).getData();
             if(resultJson != null){
                 JSONArray array= JSONArray.parseArray(resultJson);
@@ -414,26 +455,50 @@ public class ManageLoanOtherController extends ManageBaseController {
                 List<UserAppsModel> realData = array.toJavaList(UserAppsModel.class);
                 for(int i = 0;i < realData.size();i++){
                     realData.get(i).setStatus(0);
-                    if(Constant.LOAN_APP_NAME.contains(realData.get(i).getAppName()) ||
-                            Constant.LOAN_APP_PACKAGE_NAME.contains(realData.get(i).getPackageName())){
+                    if((realData.get(i).getAppName() != null &&Constant.LOAN_APP_NAME.contains(realData.get(i).getAppName())) ||
+                            (realData.get(i).getPackageName() !=null && Constant.LOAN_APP_PACKAGE_NAME.contains(realData.get(i).getPackageName()))){
                         realData.get(i).setStatus(1);
-                        count ++;
+                        sum ++;
                     }
                 }
                 realData.sort(Comparator.comparing(UserAppsModel::getStatus).reversed());
-                List<UserApps> data = listToPage(realData,page,current,pageSize);
+                List<UserAppsModel> data = listToPage(realData,page,current,pageSize);
                 result.put(Constant.RESPONSE_DATA, data);
-                result.put("count", count);
+                result.put("count", sum);
                 result.put(Constant.RESPONSE_DATA_PAGE, page);
             } else {
+                Map<String,Object> map = new HashMap<>();
+                map.put("userId",userId);
+                List<UserApps> appsInfo = userAppsService.listSelective(userId,map);
+                List<UserAppsModel> realData = new ArrayList<>();
                 RdPage page = new RdPage();
-                page.setTotal(0);
-                page.setPageSize(pageSize);
-                page.setCurrent(current);
-                page.setPages(0);
-                result.put(Constant.RESPONSE_DATA, new ArrayList<>());
-                result.put("count", count);
-                result.put(Constant.RESPONSE_DATA_PAGE, page);
+                if(appsInfo.size() > 0){
+                    for(int i = 0;i < appsInfo.size();i++){
+                        UserAppsModel model = UserAppsModel.parse(appsInfo.get(i));
+                        model.setStatus(0);
+                        if((!StringUtils.isEmpty(model.getAppName()) &&
+                                Constant.LOAN_APP_NAME.contains(model.getAppName())) ||
+                                (!StringUtils.isEmpty(model.getPackageName()) &&
+                                        Constant.LOAN_APP_PACKAGE_NAME.contains(model.getPackageName()))){
+                            model.setStatus(1);
+                            sum ++;
+                        }
+                        realData.add(model);
+                    }
+                    realData.sort(Comparator.comparing(UserAppsModel::getStatus).reversed());
+                    List<UserAppsModel> data = listToPage(realData,page,current,pageSize);
+                    result.put(Constant.RESPONSE_DATA, data);
+                    result.put("count", sum);
+                    result.put(Constant.RESPONSE_DATA_PAGE, page);
+                } else {
+                    page.setTotal(0);
+                    page.setPageSize(pageSize);
+                    page.setCurrent(current);
+                    page.setPages(0);
+                    result.put(Constant.RESPONSE_DATA, new ArrayList<>());
+                    result.put("count", sum);
+                    result.put(Constant.RESPONSE_DATA_PAGE, page);
+                }
             }
             return new ResponseEntity<>(ResultModel.ok(result), HttpStatus.OK);
         }
@@ -653,7 +718,7 @@ public class ManageLoanOtherController extends ManageBaseController {
         paramsReq.clear();
         paramsReq.put("userId",userId);
         paramsReq.put("businessType","20");
-        paramsReq.put("respCode","200");
+        paramsReq.put("respCode","100");
         OperatorReqLog operatorReqLogs = operatorReqLogService.findLastRecord(paramsReq);
         if(operatorReqLogs!=null&& StringUtils.isNotEmpty(operatorReqLogs.getOrderNo())){
             //根据taskID获取FaceBook信息
@@ -851,72 +916,148 @@ public class ManageLoanOtherController extends ManageBaseController {
             return new ResponseEntity<>(ResultModel.error(ManageExceptionEnum.FAIL_CODE_PARAM_INSUFFICIENT), HttpStatus.OK);
         }
         UserBaseInfo userBaseInfo = userBaseInfoService.getBaseModelByUserId(userId);
+        String resultJson = null;
         if(userBaseInfo.getUserDataId() == null){
-            return new ResponseEntity<>(ResultModel.error(ManageExceptionEnum.FAIL_CODE_PARAM_INSUFFICIENT), HttpStatus.OK);
-        }else{
-            Integer userDataId = userBaseInfo.getUserDataId().intValue();
-            int count = 0;
-            String resultJson = (String)auditDomain.getAuditInfo(userDataId, ChannelType.PSAPP, ChannelBizType.APP_CALLRECORDS).getData();
-            if(resultJson != null){
-                JSONArray array= JSONArray.parseArray(resultJson);
-                RdPage page = new RdPage();
-                List<CallRecord> realData = array.toJavaList(CallRecord.class);
-                //根据phone筛选通讯记录
-                if(phone != null &&realData.size() >0){
-                    Iterator<CallRecord> it = realData.iterator();
-                    while(it.hasNext()){
-                        CallRecord model = it.next();
-                        model.setStatus(0);
-                        if(!model.getMatchedNumber().contains(phone)){
-                            it.remove();
-                        }
-                    }
-                }
-                List<UserEmerContacts> emerContacts = userEmerContactsService.getUserEmerContactsByUserId(userId);
-                if(realData.size() > 0 && emerContacts.size() > 0){
-                    //判断是否匹配紧急联系人
-                    for(int i = 0;i < emerContacts.size();i++){
-                        for(int j = 0;j < realData.size();j++){
-                            logger.info(realData.get(j).getMatchedNumber());
-                            System.out.println(realData.get(j).getMatchedNumber());
-                            if(realData.get(j).getMatchedNumber().contains(emerContacts.get(i).getPhone())){
-                                realData.get(j).setStatus(1);
-                            }
-                        }
-                    }
-                }
-                realData.sort(Comparator.comparing(CallRecord::getStatus).reversed());
-                List<CallRecord> data = listToPage(realData,page,current,pageSize);
-                result.put(Constant.RESPONSE_DATA, data);
-                result.put("count", count);
-                result.put(Constant.RESPONSE_DATA_PAGE, page);
-            } else {
-                RdPage page = new RdPage();
-                page.setTotal(0);
-                page.setPageSize(pageSize);
-                page.setCurrent(current);
-                page.setPages(0);
-                result.put(Constant.RESPONSE_DATA, new ArrayList<>());
-                result.put("count", count);
-                result.put(Constant.RESPONSE_DATA_PAGE, page);
+            UserCallRecord record = userCallRecordService.getByUserId(userId);
+            if(record != null){
+                resultJson = new String((byte[])record.getInfo(),"UTF-8");
             }
-            return new ResponseEntity<>(ResultModel.ok(result), HttpStatus.OK);
+        }else {
+            Integer userDataId = userBaseInfo.getUserDataId().intValue();
+            resultJson = (String) auditDomain.getAuditInfo(userDataId, ChannelType.PSAPP, ChannelBizType.APP_CALLRECORDS).getData();
         }
+        if(resultJson != null){
+            JSONArray array= JSONArray.parseArray(resultJson);
+            RdPage page = new RdPage();
+            List<CallRecord> realData = array.toJavaList(CallRecord.class);
+            //根据phone筛选通讯记录
+            if(phone != null &&realData.size() >0){
+                Iterator<CallRecord> it = realData.iterator();
+                while(it.hasNext()){
+                    CallRecord model = it.next();
+                    model.setStatus(0);
+                    if(!model.getMatchedNumber().contains(phone)){
+                        it.remove();
+                    }
+                }
+            }
+            List<UserEmerContacts> emerContacts = userEmerContactsService.getUserEmerContactsByUserId(userId);
+            if(realData.size() > 0 && emerContacts.size() > 0){
+                //判断是否匹配紧急联系人
+                for(int i = 0;i < emerContacts.size();i++){
+                    for(int j = 0;j < realData.size();j++){
+                        logger.info(realData.get(j).getMatchedNumber());
+                        System.out.println(realData.get(j).getMatchedNumber());
+                        if(realData.get(j).getMatchedNumber().contains(emerContacts.get(i).getPhone())){
+                            realData.get(j).setStatus(1);
+                        }
+                    }
+                }
+            }
+            realData.sort(Comparator.comparing(CallRecord::getStatus).reversed());
+            List<CallRecord> data = listToPage(realData,page,current,pageSize);
+            result.put(Constant.RESPONSE_DATA, data);
+            result.put(Constant.RESPONSE_DATA_PAGE, page);
+        } else {
+            RdPage page = new RdPage();
+            page.setTotal(0);
+            page.setPageSize(pageSize);
+            page.setCurrent(current);
+            page.setPages(0);
+            result.put(Constant.RESPONSE_DATA, new ArrayList<>());
+            result.put(Constant.RESPONSE_DATA_PAGE, page);
+        }
+        return new ResponseEntity<>(ResultModel.ok(result), HttpStatus.OK);
     }
 
     private  List listToPage(List data,RdPage page,Integer current,Integer pageSize){
-        List realData = new ArrayList<>();
         Integer count = pageSize * current >data.size() ? data.size() : pageSize * current;
-        for(int i = pageSize * (current - 1);i < count;i++){
-            realData.add(data.get(i));
-        }
+        List realData = data.subList(pageSize * (current - 1),count);
         Integer total = data.size();
         Integer pages = data.size() / pageSize + data.size() % pageSize > 0 ? 1 : 0;
-//        RdPage page = new RdPage();
         page.setCurrent(current);
         page.setPages(pages);
         page.setPageSize(pageSize);
         page.setTotal(total);
         return realData;
+    }
+
+    @RequestMapping(value = "getCallRecordsCount.htm", method = {RequestMethod.POST})
+    public ResponseEntity<ResultModel> userCallRecordCountsList(
+            @RequestParam(value = "userId") Long userId,@RequestParam(value = "current") Integer current,
+            @RequestParam(value = "pageSize") Integer pageSize)  throws Exception{
+        Map<String, Object> result = new HashMap<>();
+        if (null == userId || null == current || null == pageSize) {
+            return new ResponseEntity<>(ResultModel.error(ManageExceptionEnum.FAIL_CODE_PARAM_INSUFFICIENT), HttpStatus.OK);
+        }
+        String resultJson = null;
+        UserBaseInfo userBaseInfo = userBaseInfoService.getBaseModelByUserId(userId);
+        RdPage page = new RdPage();
+        if(userBaseInfo.getUserDataId() == null){
+            UserCallRecord record = userCallRecordService.getByUserId(userId);
+            if(record != null){
+                resultJson = new String((byte[])record.getInfo(),"UTF-8");
+            }
+        } else {
+            Integer userDataId = userBaseInfo.getUserDataId().intValue();
+            resultJson = (String)auditDomain.getAuditInfo(userDataId, ChannelType.PSAPP, ChannelBizType.APP_CALLRECORDS).getData();
+
+        }
+        if(resultJson != null) {
+            try {
+                JSONArray array = JSONArray.parseArray(resultJson);
+                List<CallRecord> realData = array.toJavaList(CallRecord.class);
+                List<CallRecordCount> countData = new ArrayList<>();
+                Date time = DateUtil.getDate(-180);
+                for (int i = 0; i < realData.size(); i++) {
+                    CallRecordCount count = new CallRecordCount();
+                    boolean flag = false;
+                    if (realData.get(i).getDate().after(time)) {
+                        for (int j = 0; j < countData.size(); j++) {
+                            if (realData.get(i).getMatchedNumber().equals(countData.get(j).getPhoneNumber())) {
+                                countData.get(j).setEndTime(realData.get(i).getDate());
+                                countData.get(j).setCount(countData.get(j).getCount() + 1);
+                                flag = true;
+                            }
+                        }
+                        if (!flag) {
+                            count.setPhoneNumber(realData.get(i).getMatchedNumber());
+                            count.setCount(1);
+                            count.setStartTime(realData.get(i).getDate());
+                            count.setEndTime(realData.get(i).getDate());
+                            countData.add(count);
+                        }
+                    }
+                }
+                Collections.sort(countData, (o1, o2) -> {
+                    if (o1.getCount() < o2.getCount()) {
+                        return 1;
+                    }
+                    if (o1.getCount().equals(o2.getCount())) {
+                        return 0;
+                    }
+                    return -1;
+                });
+                List<CallRecord> data = listToPage(countData, page, current, pageSize);
+                result.put(Constant.RESPONSE_DATA, data);
+                result.put(Constant.RESPONSE_DATA_PAGE, page);
+            } catch (Exception e) {
+                logger.error(e.getMessage());
+                page.setTotal(0);
+                page.setPageSize(pageSize);
+                page.setCurrent(current);
+                page.setPages(0);
+                result.put(Constant.RESPONSE_DATA_PAGE, page);
+                result.put(Constant.RESPONSE_DATA, new ArrayList<>());
+            }
+        } else {
+            page.setTotal(0);
+            page.setPageSize(pageSize);
+            page.setCurrent(current);
+            page.setPages(0);
+            result.put(Constant.RESPONSE_DATA_PAGE, page);
+            result.put(Constant.RESPONSE_DATA, new ArrayList<>());
+        }
+        return new ResponseEntity<>(ResultModel.ok(result), HttpStatus.OK);
     }
 }

@@ -17,20 +17,6 @@
             <artifactId>ps-cashloan-manage-report-interface</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.adpanshi</groupId>
-            <artifactId>ps-cashloan-data-user-interface</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.adpanshi</groupId>
-            <artifactId>ps-cashloan-data-thirdparty-equifax-interface</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.adpanshi</groupId>
-            <artifactId>ps-cashloan-data-appdata-interface</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
+
     </dependencies>
 </project>

@@ -4,6 +4,9 @@ import com.adpanshi.cashloan.common.mapper.RDBatisDao;
 import com.adpanshi.cashloan.manage.cl.model.UserContacts;
 import com.adpanshi.cashloan.manage.cl.model.UserContactsExample;
 import java.util.List;
+import java.util.Map;
+
+import com.adpanshi.cashloan.manage.cl.model.expand.UserContactsModel;
 import org.apache.ibatis.annotations.Param;
 @RDBatisDao
 public interface UserContactsMapper {
@@ -94,4 +97,19 @@ public interface UserContactsMapper {
      * @mbg.generated
      */
     int updateByPrimaryKey(UserContacts record);
+
+    /**
+     * 根据表名查询表数量
+     * @param tableName
+     * @return
+     */
+    int countTable(String tableName);
+    /**
+     * 做了字典匹配的通讯录
+     * @param tableName
+     * @param params
+     * @return
+     */
+    List<UserContactsModel> listShardSelectiveNew(@Param("tableName") String tableName,
+                                                  @Param("params") Map<String, Object> params);
 }

@@ -369,6 +369,7 @@
     order by u.id desc
   </select>
   <select id="reListModelNew" resultMap="BaseInfoModelMap" parameterType="java.util.HashMap">
+    SELECT * FROM(
     SELECT
     cu.id,
     cu.login_name,
@@ -380,14 +381,14 @@
     cubi.state,
     cubi.education,
     chn.NAME AS channel_name,
-    count(1) AS fjcs
+    count(1) - 1 AS fjcs
     FROM
     cl_user cu left join
     cl_borrow_main t on cu.id = t.user_id left join
     cl_user_base_info cubi on  cubi.user_id = t.user_id left join
     cl_channel chn on chn.id = cu.channel_id
     WHERE
-    t.state IN ( '40', '41' )
+    t.state IN ( '20', '26','30','40','41' )
     <if test="realName !='' and realName !=null">
       and cubi.real_name like concat("%",#{realName,jdbcType=VARCHAR},"%")
     </if>
@@ -418,8 +419,8 @@
     </if>
     GROUP BY
     t.user_id
-    ORDER BY fjcs DESC
-
+    ORDER BY fjcs DESC)
+    t1 where t1.fjcs > 0
   </select>
   <select id="listAuthUserModel" resultMap="AuthUserModelMap" parameterType="java.util.HashMap">
     SELECT

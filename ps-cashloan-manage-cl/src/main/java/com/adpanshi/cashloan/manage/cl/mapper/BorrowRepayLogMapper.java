@@ -7,6 +7,7 @@ import com.adpanshi.cashloan.manage.cl.model.BorrowRepayLogExample;
 import java.util.List;
 import java.util.Map;
 
+import com.adpanshi.cashloan.manage.cl.model.ManageBRepayLogModel;
 import com.adpanshi.cashloan.manage.cl.model.expand.BorrowRepayLogModel;
 import org.apache.ibatis.annotations.Param;
 @RDBatisDao
@@ -115,4 +116,11 @@ public interface BorrowRepayLogMapper {
      * @Date: 2018/7/25
      */
     Map qryRepayLog(Long id);
+
+    /**
+     * 根据用户订单ID查询还款记录信息
+     * @param borrowId
+     * @return
+     */
+    BorrowRepayLogModel selectBorrowRepayLog(Long borrowId);
 }

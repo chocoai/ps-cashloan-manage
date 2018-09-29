@@ -55,6 +55,11 @@ import java.util.Date;
 	 * 业务类型，ACCFUND公积金   OPERATOR运营商
 	 */
     private String businessType;
+
+	/**
+	 * 查询次数
+	 */
+	private int times;
 	
     public OperatorReqLog(){
     	super();
@@ -188,4 +193,11 @@ import java.util.Date;
 		this.businessType = businessType;
 	}
 
+	public int getTimes() {
+		return times;
+	}
+
+	public void setTimes(int times) {
+		this.times = times;
+	}
 }

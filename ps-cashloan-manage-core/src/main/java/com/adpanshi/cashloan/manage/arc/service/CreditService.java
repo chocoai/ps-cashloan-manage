@@ -10,10 +10,11 @@ public interface CreditService {
      *  放款后变更用户额度
      * @param userId
      * @param amount
+     * @param isCreditsUpgrade 是否提额
      * @return int
      * @throws
      * @author Vic Tang
      * @date 2018/8/3 15:39
      * */
-    int modifyCreditAfterLoan(Long userId, BigDecimal amount);
+    int modifyCreditAfterLoan(Long userId, BigDecimal amount, boolean isCreditsUpgrade);
 }

@@ -10,13 +10,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>ps-cashloan-manage-report-interface</artifactId>
+
     <dependencies>
         <dependency>
             <groupId>com.adpanshi</groupId>
-            <artifactId>ps-cashloan-data-common</artifactId>
+            <artifactId>ps-cashloan-data-user-interface</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
     </dependencies>
-
 
 </project>

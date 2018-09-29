@@ -71,4 +71,9 @@ public interface BorrowMainService {
      * @date 2018/8/4 1:09
      * */
     String manualVerifyBorrow(Long borrowMainId, String state, String remark, Long userId, String realName, String orderView) throws ManageException;
+    /**
+     * 风控复审确认审核
+     * @param borrowMainId
+     */
+    void commitAudit(Long borrowMainId, String realName);
 }

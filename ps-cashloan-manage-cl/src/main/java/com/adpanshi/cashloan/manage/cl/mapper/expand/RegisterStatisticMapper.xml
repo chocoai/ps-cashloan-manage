@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 首页数据统计 -->
+<mapper namespace="com.adpanshi.cashloan.manage.cl.mapper.expand.RegisterStatisticMapper">
+	<resultMap id="BaseResultMap" type="com.adpanshi.cashloan.manage.cl.pojo.RegisterStatistic">
+        <result property="name" column="name" />
+		<result property="value" column="value" />
+	</resultMap>
+	<resultMap id="RegisterAuthMap" type="com.adpanshi.cashloan.manage.cl.pojo.RegisterAuthStatistic">
+		<result property="date" column="date" />
+		<result property="idCount" column="id_count" />
+		<result property="registerCount" column="register_count" />
+		<result property="bankCount" column="bank_count" />
+		<result property="contactCount" column="contact_count" />
+		<result property="totalCount" column="total_count" />
+	</resultMap>
+	<select id="getStatisticByAge" resultMap="BaseResultMap" >
+		select age as name,count(1) as value
+		from (select case when cub.date_birthday is null then '未知'
+		when TIMESTAMPDIFF(YEAR, cub.date_birthday, CURDATE()) &gt;= 20 and TIMESTAMPDIFF(YEAR, cub.date_birthday, CURDATE()) &lt;=25 then '20~25岁'
+		when TIMESTAMPDIFF(YEAR, cub.date_birthday, CURDATE()) &gt;= 26 and TIMESTAMPDIFF(YEAR, cub.date_birthday, CURDATE()) &lt;=30 then '26~30岁'
+		when TIMESTAMPDIFF(YEAR, cub.date_birthday, CURDATE()) &gt;= 31 and TIMESTAMPDIFF(YEAR, cub.date_birthday, CURDATE()) &lt;=35 then '31~35岁'
+		when TIMESTAMPDIFF(YEAR, cub.date_birthday, CURDATE()) &gt;= 36 and TIMESTAMPDIFF(YEAR, cub.date_birthday, CURDATE()) &lt;=40 then '36~40岁'
+		else  '未知'
+		end  age
+		from cl_user_base_info cub join cl_user cu on cub.user_id = cu.id
+		where cu.regist_time &lt;= #{time} ) t group by age ;
+	</select>
+	<select id="getStatisticByGender" resultMap="BaseResultMap">
+		select sex as name,count(1) as value
+		from (select
+		case when cub.sex ='Female' then '女' when cub.sex ='Male' then '男' else '蒙面侠' end sex
+		from cl_user_base_info cub join cl_user cu on cub.user_id = cu.id
+		where cu.regist_time &lt;= #{time} ) t group by sex ;
+	</select>
+
+	<select id="getStatisticByAuth" resultMap="RegisterAuthMap">
+		select t.date,
+			count(t.date) as register_count,
+			sum(t.id_state) as id_count,
+			sum(t.bank_card_state) as bank_count,
+			sum(t.contact_state) as contact_count,
+			sum(t.total_state) as total_count
+		from
+			(select Date(cu.regist_time) as date,
+				case when cua.id_state = 30 then 1 else 0 end id_state,
+				case when cua.bank_card_state = 30 then 1 else 0 end bank_card_state,
+				case when cua.contact_state = 30 then 1 else 0 end contact_state,
+				case when cua.id_state = 30 and bank_card_state = 30 and contact_state = 30 then 1 else 0 end total_state
+			from cl_user cu left join cl_user_auth cua on cu.id = cua.user_id where cu.regist_time &lt;= #{time} ) t
+		<if test="range !=null and range != '' ">
+			where DATEDIFF(curdate(),t.date) &lt;= #{range}
+		</if>
+		group by t.date order by t.date;
+	</select>
+	<select id="getStatisticIndex" resultType="HashMap">
+		select count(cu.id) registCount, sum( cua.id_state = 30 and bank_card_state = 30 and contact_state = 30) authCount
+		from cl_user cu left join cl_user_auth cua on cu.id = cua.user_id where cu.regist_time &lt;= #{time}
+	</select>
+</mapper>

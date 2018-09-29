@@ -21,6 +21,31 @@
     <result column="order_no" property="orderNo" jdbcType="VARCHAR" />
     <result column="amount" property="amount" jdbcType="DECIMAL" />
   </resultMap>
+
+  <!-- 基本的sql查询条件公共引用 -->
+  <sql id="searchBy">
+    <trim prefix="where" prefixOverrides="and|or">
+      <if test="id !='' and id !=null">
+        id  = #{id,jdbcType=BIGINT}
+      </if>
+      <if test="userId !='' and userId !=null">
+        and user_id = #{userId,jdbcType=BIGINT}
+      </if>
+      <if test="borrowId !='' and borrowId !=null">
+        and borrow_id = #{borrowId,jdbcType=BIGINT}
+      </if>
+      <if test="state !='' and state !=null">
+        and state = #{state,jdbcType=VARCHAR}
+      </if>
+      <if test="remark !='' and remark !=null">
+        and remark = #{remark,jdbcType=VARCHAR}
+      </if>
+      <if test="createTime !=null">
+        and create_time = #{createTime,jdbcType=TIMESTAMP}
+      </if>
+    </trim>
+  </sql>
+
   <sql id="Example_Where_Clause">
     <!--
       WARNING - @mbg.generated
@@ -368,4 +393,17 @@
       repay_time = #{repayTime,jdbcType=TIMESTAMP}
     where id = #{id,jdbcType=BIGINT}
   </update>
+
+  <select id="findSelective" resultMap="BaseResultMap" parameterType="java.util.HashMap">
+    select
+    <include refid="Base_Column_List" />
+    from cl_borrow_progress
+    <include refid="searchBy"/>
+    <if test="orderByDesc !=null and orderByDesc!=''">
+      order by ${orderByDesc}
+    </if>
+    <if test="limit !=null and limit!=''">
+      limit #{limit,jdbcType=BIGINT}
+    </if>
+  </select>
 </mapper>

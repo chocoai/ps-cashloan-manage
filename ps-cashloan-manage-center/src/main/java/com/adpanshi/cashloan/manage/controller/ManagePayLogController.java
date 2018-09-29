@@ -9,6 +9,7 @@ import com.adpanshi.cashloan.manage.cl.model.expand.BorrowTemplateModel;
 import com.adpanshi.cashloan.manage.cl.model.expand.PayLogModel;
 import com.adpanshi.cashloan.manage.cl.service.*;
 import com.adpanshi.cashloan.manage.core.common.context.Constant;
+import com.adpanshi.cashloan.manage.core.common.context.Global;
 import com.adpanshi.cashloan.manage.pojo.ResultModel;
 import com.alibaba.fastjson.JSONObject;
 import org.joda.time.DateTime;
@@ -129,8 +130,13 @@ public class ManagePayLogController extends ManageBaseController {
                 payLogService.updateSelective(record);
                 logger.info("***********************************>放款异步回调，开始更新用户信用额度.....");
 
+                //判断用户是否提额
+                boolean isCreditsUpgrade = false;
+                if(Global.getValue("upgrade_credit_list").contains(String.valueOf(borrowMain.getAmount()))){
+                    isCreditsUpgrade = true;
+                }
                 //@remarks: 只有真正放款.才会更改额度. @date: 20170724 @author: nmnl
-                int TMPcount=creditService.modifyCreditAfterLoan(borrowMain.getUserId(),borrowMain.getAmount());
+                int TMPcount=creditService.modifyCreditAfterLoan(borrowMain.getUserId(),borrowMain.getAmount(),isCreditsUpgrade);
                 logger.info("***********************************>修改用户信用额度结果:{}......",new Object[]{TMPcount>0});
                 //发送放款短信
                 clSmsService.payment(payLog.getUserId(),borrowMain.getId(),new Date(),borrowMain.getRealAmount(),orderNo);
